@@ -2,8 +2,8 @@ package study.datajpa.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import study.datajpa.dto.MemberDto;
@@ -39,9 +39,16 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     //query를 counting 할때조차 조인되어 있는 team까지 불러오면서 카운팅하면 성능이
     //매우 느려질 수 있으므로, 나눠서 쿼리를 짠다.
     @Query(value = "select m from Member m left join m.team t"
-            ,countQuery = "select count(m) from Member m")
+            , countQuery = "select count(m) from Member m")
     Page<Member> findByAge(int age, Pageable pageable);
 
+    //modifying이 없으면 일반적인 조회에서 처럼 getSingleResult를 실행하게 되기때문에
+    //modifying을 적어주어서 excuteUpdate()를 실행하게 해준다.
+    //@Modifying(clearAutomatically = true)은
+    // db를 update한후 자동으로 영속성 컨텍스트를 clear 해준다.
+    @Modifying(clearAutomatically = true)
+    @Query("update Member m set m.age = m.age+1 where m.age >= :age")
+    int bulkAgePlus(@Param("age") int age);
 
-
+    List<Member> findByUsername(String username);
 }

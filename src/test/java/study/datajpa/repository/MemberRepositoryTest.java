@@ -1,17 +1,18 @@
 package study.datajpa.repository;
 
+import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
 import study.datajpa.entity.Team;
 
+import javax.persistence.EntityManager;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +27,8 @@ class MemberRepositoryTest {
     MemberRepository memberRepository;
     @Autowired
     TeamRepository teamRepository;
+    @Autowired
+    EntityManager em;
 
     @Test
     public void testMember() {
@@ -168,7 +171,6 @@ class MemberRepositoryTest {
     }
 
 
-
     @Test
     public void paging() {
 
@@ -194,6 +196,55 @@ class MemberRepositoryTest {
         assertThat(page.getTotalPages()).isEqualTo(4);
         assertThat(page.isFirst()).isTrue();
         assertThat(page.hasNext()).isTrue();
+    }
+
+    @Test
+    public void bulkUpdate() {
+        for (int i = 1; i <= 5; i++) {
+            memberRepository.save(new Member("member" + i, i * 10));
+        }
+        int resultCount = memberRepository.bulkAgePlus(30);
+
+        AssertionsForClassTypes.assertThat(resultCount).isEqualTo(3);
+
+        //member5에 값은 무엇일까?? DB에 나이를 1씩 업데이트 했으므로 51일까??
+        //답은 50이다. bulkAgePlus()가 DB에 바로 업데이트를 했지만
+        // 영속성 컨텍스트를 거치지 않았기 때문에 영속성 컨텍스는 값이 50으로 남아 있었다.
+        //따라서, member5에 이름을 갖는 Member 엔티티를 가져오려고 했는데 영속성컨텍스트에
+        //값이 있었기 때문에 50이라는 값이 리턴된 것이다.
+        //이걸 해결하기 위해서는, EntityManger에서 영속성 컨텍스트를 flush로 commit 해주고
+        // clear로 영속성 컨텍스트를 날려주어야 한다.
+        //영속성 컨텍스트를 날려주었을때 db를 다시 조회하기 때문이다.
+        //spring data jpa에서는 @Modifying(clearAutomatically = true) 해주면됨
+//        em.flush();
+//        em.clear();
+        List<Member> result = memberRepository.findByUsername("member5");
+
+        assertThat(result.get(0).getAge()).isEqualTo(51);
+
+    }
+
+    @Test
+    public void findMemberLazy(){
+        //given
+        //member1 -> teamA
+        //member2 -> teamB
+
+        Team teamA = new Team("teamA");
+        Team teamB= new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+
+        Member member1 = new Member("member1",10,teamA);
+        Member member2 = new Member("member2",10,teamB);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        em.flush();
+        em.clear();
+
+        List<Member> members = memberRepository.findAll();
+
 
 
     }
