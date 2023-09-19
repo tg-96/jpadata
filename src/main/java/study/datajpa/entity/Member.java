@@ -5,12 +5,13 @@ import lombok.*;
 import javax.persistence.*;
 
 @Entity
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@ToString(of = {"id","username","age"})
+@ToString(of = {"id", "username", "age"})
 public class Member {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "member_id")
     private Long id;
     private String username;
@@ -19,7 +20,7 @@ public class Member {
     public Member(String username, int age, Team team) {
         this.username = username;
         this.age = age;
-        if(team != null){
+        if (team != null) {
             changeTeam(team);
         }
     }
@@ -37,11 +38,11 @@ public class Member {
         this.username = username;
     }
 
-    public void changeUserName(String username){
+    public void changeUserName(String username) {
         this.username = username;
     }
 
-    public void changeTeam(Team team){
+    public void changeTeam(Team team) {
         this.team = team;
         team.getMembers().add(this);
     }

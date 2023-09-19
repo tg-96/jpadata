@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 @Transactional
+@Rollback(false)
 class MemberRepositoryTest {
     @Autowired
     MemberRepository memberRepository;
@@ -225,18 +227,18 @@ class MemberRepositoryTest {
     }
 
     @Test
-    public void findMemberLazy(){
+    public void findMemberLazy() {
         //given
         //member1 -> teamA
         //member2 -> teamB
 
         Team teamA = new Team("teamA");
-        Team teamB= new Team("teamB");
+        Team teamB = new Team("teamB");
         teamRepository.save(teamA);
         teamRepository.save(teamB);
 
-        Member member1 = new Member("member1",10,teamA);
-        Member member2 = new Member("member2",10,teamB);
+        Member member1 = new Member("member1", 10, teamA);
+        Member member2 = new Member("member2", 10, teamB);
         memberRepository.save(member1);
         memberRepository.save(member2);
 
@@ -244,8 +246,53 @@ class MemberRepositoryTest {
         em.clear();
 
         List<Member> members = memberRepository.findAll();
+    }
 
+    @Test
+    public void findMembers() {
+        Member member1 = new Member("member1", 10);
+        Member member2 = new Member("member2", 10);
+        Member member3 = new Member("member3", 10);
 
+        memberRepository.saveAll(Arrays.asList(member1, member2, member3));
 
+        Team team1 = new Team("team1");
+        Team team2 = new Team("team2");
+        Team team3 = new Team("team3");
+
+        teamRepository.saveAll(Arrays.asList(team1, team2, team3));
+
+        member1.changeTeam(team1);
+        member2.changeTeam(team2);
+        member3.changeTeam(team3);
+        //영속성 컨텍스트를 비워준다.
+        em.flush();
+        em.clear();
+
+        List<Member> members = memberRepository.findAll();
+
+        for (Member member : members) {
+            System.out.println("member.getTeam() = " + member.getTeam());
+        }
+    }
+
+    @Test
+    public void queryHint() {
+        //given
+        Member member = new Member("memberA");
+        memberRepository.save(member);
+        em.flush();
+        em.clear();
+
+        //when
+        Member findMember = memberRepository.findReadOnlyByUsername("memberA");
+        findMember.setUsername("memberB");
+
+        em.flush();
+    }
+
+    @Test
+    public void callCustom(){
+        List<Member> result = memberRepository.findMemberCustom();
     }
 }

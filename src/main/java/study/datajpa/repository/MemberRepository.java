@@ -2,18 +2,18 @@ package study.datajpa.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
 
+import javax.persistence.LockModeType;
+import javax.persistence.QueryHint;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface MemberRepository extends JpaRepository<Member, Long> {
+public interface MemberRepository extends JpaRepository<Member, Long>,MemberRepositoryCustom {
     List<Member> findByUsernameAndAgeGreaterThan(String username, int age);
 
     List<Member> findTop3ByOrderByAgeAsc();
@@ -51,4 +51,35 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     int bulkAgePlus(@Param("age") int age);
 
     List<Member> findByUsername(String username);
+
+    @Query("select m from Member m")
+    List<Member> findMembers();
+
+    @Query("select m from Member m join m.team t")
+    List<Member> findMembersWithTeam();
+
+    @Query("select m from Member m left join fetch m.team")
+    List<Member> findMemberJoinFetch();
+
+    @Override
+    @EntityGraph(attributePaths = "team")
+    List<Member> findAll();
+
+    @Query("select m from Member m")
+    @EntityGraph(attributePaths = "team")
+    List<Member> findMemberEntityGraph();
+
+    //entity graph는 fetch join
+    @EntityGraph(attributePaths = "team")
+    List<Member> findEntityGraphByUsername(@Param("username") String username);
+
+    //readOnly가 true로 되어있으면 스냅샷을 만들지 않아서 변경을 하려고해도 변경되지 않는다.
+    @QueryHints(value = @QueryHint(name = "org.hibernate.readOnly", value = "true"))
+    Member findReadOnlyByUsername(String username);
+
+    @Lock(LockModeType.WRITE)
+    List<Member> findLockByUsername(String username);
+
+
+
 }
