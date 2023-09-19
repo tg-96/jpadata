@@ -42,6 +42,7 @@ public interface MemberRepository extends JpaRepository<Member, Long>,MemberRepo
             , countQuery = "select count(m) from Member m")
     Page<Member> findByAge(int age, Pageable pageable);
 
+
     //modifying이 없으면 일반적인 조회에서 처럼 getSingleResult를 실행하게 되기때문에
     //modifying을 적어주어서 excuteUpdate()를 실행하게 해준다.
     //@Modifying(clearAutomatically = true)은
